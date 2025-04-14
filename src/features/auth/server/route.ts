@@ -5,14 +5,24 @@ import { loginSchema, signupSchema } from "../schemas";
 import { createAdminClient } from "@/lib/appwrite";
 import { ID } from "node-appwrite";
 import { AUTH_COOKIE } from "../constants";
+import { sessionMiddleware } from "@/lib/session-middleware";
 
 const app = new Hono()
+	.get("/current", sessionMiddleware, async (c) => {
+		const user = c.get("user");
+		return c.json({ data: user });
+	})
 	.post("/login", zValidator("json", loginSchema), async (c) => {
 		const { email, password } = c.req.valid("json");
 
 		const { account } = await createAdminClient();
 
-		const session = await account.createEmailPasswordSession(email, password);
+		let session;
+		try {
+			session = await account.createEmailPasswordSession(email, password);
+		} catch (error) {
+			return c.json({ error }, 400);
+		}
 
 		setCookie(c, AUTH_COOKIE, session.secret, {
 			path: "/",
@@ -28,9 +38,14 @@ const app = new Hono()
 		const { email, password, name } = c.req.valid("json");
 
 		const { account } = await createAdminClient();
-		const user = await account.create(ID.unique(), email, password, name);
 
-		const session = await account.createEmailPasswordSession(email, password);
+		let user, session;
+		try {
+			user = await account.create(ID.unique(), email, password, name);
+			session = await account.createEmailPasswordSession(email, password);
+		} catch (error) {
+			return c.json({ error }, 400);
+		}
 
 		setCookie(c, AUTH_COOKIE, session.secret, {
 			path: "/",
@@ -42,8 +57,13 @@ const app = new Hono()
 
 		return c.json({ success: true, data: user });
 	})
-	.post("/logout", (c) => {
+	.post("/logout", sessionMiddleware, async (c) => {
+		const account = c.get("account");
+
 		deleteCookie(c, AUTH_COOKIE);
+
+		await account.deleteSession("current");
+
 		return c.json({ success: true });
 	});
 

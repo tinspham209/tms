@@ -26,7 +26,7 @@ import { SignupSchema, signupSchema } from "../schemas";
 import { useRegister } from "../query/use-Register";
 
 export const SignUpCard = () => {
-	const { mutate } = useRegister();
+	const { mutate, isPending } = useRegister();
 
 	const form = useForm<SignupSchema>({
 		resolver: zodResolver(signupSchema),
@@ -41,7 +41,8 @@ export const SignUpCard = () => {
 		mutate(values);
 	};
 
-	const isLoading = false;
+	const isLoading = isPending;
+
 	return (
 		<Card className="w-full h-full md:w-[487px] border-none shadow-none">
 			<CardHeader className="flex flex-col items-center justify-center text-center ">
