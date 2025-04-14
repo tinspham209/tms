@@ -18,8 +18,11 @@ import { Button } from "@/components/ui/button";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Link from "next/link";
+import { useLogin } from "../query/use-login";
 
 export const SignInCard = () => {
+	const { mutate } = useLogin();
+
 	const form = useForm<LoginSchema>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
@@ -29,7 +32,7 @@ export const SignInCard = () => {
 	});
 
 	const onSubmit = (values: LoginSchema) => {
-		// mutate({ json: values });
+		mutate(values);
 	};
 
 	const isLoading = false;
