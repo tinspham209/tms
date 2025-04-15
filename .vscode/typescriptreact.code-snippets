@@ -1,0 +1,22 @@
+{
+  
+  //#region  //*=========== Next.js ===========
+  "Use Client Only": {
+		"prefix": "uc",
+		"body": ["'use client'"],
+		"description": "Use Client Only"
+	},
+  "Use Server Only": {
+		"prefix": "us",
+		"body": ["'use server'"],
+		"description": "Use Server Only"
+	},
+  //#endregion  //*======== Next.js ===========
+
+  //#region  //*=========== Snippet Wrap ===========
+  "Wrap with Fragment": {
+    "prefix": "ff",
+    "body": ["<>", "\t${TM_SELECTED_TEXT}", "</>"]
+  },
+  //#endregion  //*======== Snippet Wrap ===========
+}
