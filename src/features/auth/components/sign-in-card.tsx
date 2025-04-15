@@ -19,6 +19,7 @@ import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import Link from "next/link";
 import { useLogin } from "../query/use-login";
+import { redirect } from "next/navigation";
 
 export const SignInCard = () => {
 	const { mutate, isPending } = useLogin();
@@ -32,7 +33,11 @@ export const SignInCard = () => {
 	});
 
 	const onSubmit = (values: LoginSchema) => {
-		mutate(values);
+		mutate(values, {
+			onSuccess() {
+				redirect("/");
+			},
+		});
 	};
 
 	const isLoading = isPending;
