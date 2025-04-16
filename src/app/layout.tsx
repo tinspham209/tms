@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import "./globals.css";
 import { QueryProviders } from "@/provider/query-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const fontInter = Inter({
 	subsets: ["latin"],
@@ -23,8 +24,10 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
 		<html lang="en">
 			<body className={cn(fontInter.className, "antialiased min-h-screen")}>
 				<QueryProviders>
-					<Toaster />
-					{children}
+					<NuqsAdapter>
+						<Toaster />
+						{children}
+					</NuqsAdapter>
 				</QueryProviders>
 			</body>
 		</html>

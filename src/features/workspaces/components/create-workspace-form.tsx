@@ -1,6 +1,7 @@
 "use client";
 
 import { DottedSeparator } from "@/components/dotted-separator";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,23 +13,24 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { compressImage } from "@/lib/compressor";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AvatarFallback } from "@radix-ui/react-avatar";
+import { ImageIcon } from "lucide-react";
+import Image from "next/image";
+import { ChangeEvent, useRef } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { useCreateWorkspace } from "../query/use-create-workspace";
 import { createWorkSpaceSchema, CreateWorkSpaceSchema } from "../schemas";
-import { ChangeEvent, useRef } from "react";
-import Image from "next/image";
-import { Avatar } from "@/components/ui/avatar";
-import { AvatarFallback } from "@radix-ui/react-avatar";
-import { ImageIcon } from "lucide-react";
-import { compressImage } from "@/lib/compressor";
-import { useGetWorkspaces } from "../query/use-get-workspaces";
+import { useRouter } from "next/navigation";
+import { Models } from "node-appwrite";
 
 interface Props {
 	onCancel?: () => void;
 }
 
 export const CreateWorkspaceForm = ({ onCancel }: Props) => {
+	const router = useRouter();
 	const inputRef = useRef<HTMLInputElement>(null);
 	const { mutate, isPending } = useCreateWorkspace();
 
@@ -48,8 +50,16 @@ export const CreateWorkspaceForm = ({ onCancel }: Props) => {
 		mutate(
 			{ form: payload },
 			{
-				onSuccess: () => {
+				onSuccess: (data: any) => {
+					const workspace: Models.Document = data?.data;
+					const workspaceId = workspace.$id;
+
 					form.reset();
+					router.push(`/workspaces/${workspaceId}`);
+
+					if (!!onCancel) {
+						onCancel();
+					}
 				},
 			}
 		);

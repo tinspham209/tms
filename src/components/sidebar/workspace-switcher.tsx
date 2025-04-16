@@ -1,6 +1,9 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import WorkspaceAvatar from "@/features/workspaces/components/workspace-avatar";
+import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+import { useGetWorkspaces } from "@/features/workspaces/query/use-get-workspaces";
+import { useRouter } from "next/navigation";
 import { FaPlusCircle } from "react-icons/fa";
 import {
 	Select,
@@ -9,13 +12,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "../ui/select";
-import { useGetWorkspaces } from "@/features/workspaces/query/use-get-workspaces";
-import WorkspaceAvatar from "@/features/workspaces/components/workspace-avatar";
+import { useCreateWorkspaceModal } from "@/features/workspaces/hooks/use-create-workspace-modal";
 
 const WorkspaceSwitcher = () => {
 	const router = useRouter();
-	const { workspaceId } = useParams();
+	const { workspaceId } = useWorkspaceId();
 	const { data: workspaces, isLoading } = useGetWorkspaces();
+	const { open } = useCreateWorkspaceModal();
 
 	const onSelect = (id: string) => {
 		router.push(`/workspaces/${id}`);
@@ -25,7 +28,10 @@ const WorkspaceSwitcher = () => {
 		<div className="flex flex-col gap-y-2">
 			<div className="flex items-center justify-between">
 				<p className="text-xs uppercase text-neutral-500">Workspace</p>
-				<FaPlusCircle className="size-5 text-neutral-500 cursor-pointer hover:opacity-75" />
+				<FaPlusCircle
+					onClick={open}
+					className="size-5 text-neutral-500 cursor-pointer hover:opacity-75"
+				/>
 			</div>
 			<Select
 				onValueChange={onSelect}
