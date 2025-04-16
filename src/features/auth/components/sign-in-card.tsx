@@ -44,13 +44,13 @@ export const SignInCard = () => {
 
 	return (
 		<Card className="size-full md:w-[487px] border-none shadow-none">
-			<CardHeader className="flex items-center justify-center text-center p-7">
+			<CardHeader className="flex items-center justify-center text-center px-7">
 				<CardTitle className="text-2xl">Welcome back!</CardTitle>
 			</CardHeader>
 			<div className="px-7">
 				<DottedSeparator />
 			</div>
-			<CardContent className="p-7">
+			<CardContent className="px-7">
 				<Form {...form}>
 					<form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
 						<FormField
@@ -95,7 +95,7 @@ export const SignInCard = () => {
 			<div className="px-7">
 				<DottedSeparator />
 			</div>
-			<CardContent className="p-7 flex flex-col gap-y-4">
+			<CardContent className="px-7 flex flex-col gap-y-4">
 				<Button
 					disabled={isLoading}
 					variant="secondary"
@@ -119,7 +119,7 @@ export const SignInCard = () => {
 				<DottedSeparator />
 			</div>
 
-			<CardContent className="p-7 flex items-center justify-center">
+			<CardContent className="px-7 flex items-center justify-center">
 				<p>
 					Don&apos;t have an account?{" "}
 					<Link href="/sign-up">

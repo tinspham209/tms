@@ -24,6 +24,7 @@ import { useCreateWorkspace } from "../query/use-create-workspace";
 import { createWorkSpaceSchema, CreateWorkSpaceSchema } from "../schemas";
 import { useRouter } from "next/navigation";
 import { Models } from "node-appwrite";
+import { cn } from "@/lib/utils";
 
 interface Props {
 	onCancel?: () => void;
@@ -84,15 +85,15 @@ export const CreateWorkspaceForm = ({ onCancel }: Props) => {
 
 	return (
 		<Card className="w-full h-full border-none shadow-none">
-			<CardHeader className="flex p-7">
+			<CardHeader className="flex px-7">
 				<CardTitle className="text-xl font-bold">
 					Create a new workspace
 				</CardTitle>
 			</CardHeader>
-			<div className="px-7">
+			<div className="px-7 ">
 				<DottedSeparator />
 			</div>
-			<CardContent className="p-7">
+			<CardContent className="px-7">
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}>
 						<div className="flex flex-col gap-y-4">
@@ -163,15 +164,17 @@ export const CreateWorkspaceForm = ({ onCancel }: Props) => {
 									</div>
 								)}
 							/>
+							<DottedSeparator className="py-4" />
 						</div>
 
-						<div className="flex items-center justify-between mt-7">
+						<div className="flex items-center justify-between">
 							<Button
 								type="button"
 								size="lg"
 								variant="secondary"
 								onClick={onCancel}
 								disabled={isLoading}
+								className={cn(!onCancel && "invisible")}
 							>
 								Cancel
 							</Button>
