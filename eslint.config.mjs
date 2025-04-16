@@ -13,8 +13,9 @@ const eslintConfig = [
 	...compat.extends("next/core-web-vitals", "next/typescript"),
 	{
 		rules: {
-			"@typescript-eslint/no-unused-vars": "warn",
-			"no-unused-vars": "warn",
+			"@typescript-eslint/no-unused-vars": "off",
+			"@typescript-eslint/no-explicit-any": "off",
+			"no-unused-vars": "off",
 			"no-console": ["warn", { allow: ["warn", "error"] }],
 
 			"react/self-closing-comp": [

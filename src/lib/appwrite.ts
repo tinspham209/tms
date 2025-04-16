@@ -2,7 +2,7 @@
 import "server-only";
 
 import envConfig from "@/configs/env";
-import { Client, Account } from "node-appwrite";
+import { Client, Account, Databases, Storage } from "node-appwrite";
 
 export async function createAdminClient() {
 	const client = new Client()
@@ -14,5 +14,18 @@ export async function createAdminClient() {
 		get account() {
 			return new Account(client);
 		},
+		get databaes() {
+			return new Databases(client);
+		},
+		get storage() {
+			return new Storage(client);
+		},
 	};
 }
+
+export type ErrorAppwrite = {
+	code: number;
+	name: string;
+	response: string;
+	type: string;
+};
