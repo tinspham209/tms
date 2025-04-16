@@ -15,7 +15,7 @@ import WorkspaceAvatar from "@/features/workspaces/components/workspace-avatar";
 const WorkspaceSwitcher = () => {
 	const router = useRouter();
 	const { workspaceId } = useParams();
-	const { data: workspaces } = useGetWorkspaces();
+	const { data: workspaces, isLoading } = useGetWorkspaces();
 
 	const onSelect = (id: string) => {
 		router.push(`/workspaces/${id}`);
@@ -27,7 +27,11 @@ const WorkspaceSwitcher = () => {
 				<p className="text-xs uppercase text-neutral-500">Workspace</p>
 				<FaPlusCircle className="size-5 text-neutral-500 cursor-pointer hover:opacity-75" />
 			</div>
-			<Select onValueChange={onSelect} value={workspaceId as string}>
+			<Select
+				onValueChange={onSelect}
+				value={workspaceId as string}
+				disabled={isLoading}
+			>
 				<SelectTrigger className="w-full bg-neutral-200 font-medium p-1">
 					<SelectValue placeholder="Select a workspace" />
 				</SelectTrigger>

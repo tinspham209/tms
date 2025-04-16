@@ -25,9 +25,6 @@ export const useLogin = () => {
 			router.refresh();
 			queryClient.invalidateQueries({ queryKey: ["current"] });
 		},
-		onError: () => {
-			toast.error("Login failed");
-		},
 	});
 	return mutation;
 };
