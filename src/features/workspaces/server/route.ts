@@ -4,8 +4,13 @@ import { sessionMiddleware } from "@/lib/session-middleware";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { ID, Models, Query } from "node-appwrite";
-import { createWorkSpaceSchema } from "../schemas";
+import {
+	createWorkspaceSchema,
+	updateWorkspaceSchema,
+	Workspace,
+} from "../schemas";
 import { generateInviteCode } from "@/lib/utils";
+import { getMember } from "@/features/members/utils";
 
 const app = new Hono()
 	.get("/", sessionMiddleware, async (c) => {
@@ -34,7 +39,7 @@ const app = new Hono()
 	})
 	.post(
 		"/",
-		zValidator("form", createWorkSpaceSchema),
+		zValidator("form", createWorkspaceSchema),
 		sessionMiddleware,
 		async (c) => {
 			const databases = c.get("databases");
@@ -99,8 +104,124 @@ const app = new Hono()
 				);
 			}
 
-			return c.json({ data: workspace, success: true });
+			return c.json({
+				data: {
+					...workspace,
+					member,
+				},
+				success: true,
+			});
 		}
-	);
+	)
+	.patch(
+		"/:workspaceId",
+		sessionMiddleware,
+		zValidator("form", updateWorkspaceSchema),
+		async (c) => {
+			const databases = c.get("databases");
+			const storage = c.get("storage");
+			const user = c.get("user");
+
+			const { workspaceId } = c.req.param();
+			const { name, image } = c.req.valid("form");
+
+			let member: Models.Document | undefined;
+			try {
+				member = await getMember({
+					databases,
+					workspaceId,
+					userId: user.$id,
+				});
+			} catch (error: any) {
+				return c.json(
+					{ error, message: "Failed to get member" },
+					error?.code || 401
+				);
+			}
+
+			let file: Models.File | undefined;
+			if (image instanceof File) {
+				try {
+					file = await storage.createFile(
+						envConfig.APPWRITE_BUCKET_ID,
+						ID.unique(),
+						image
+					);
+				} catch (error: any) {
+					return c.json(
+						{ error: error, message: "Failed to storage.createFile" },
+						error?.code
+					);
+				}
+			}
+
+			let workspace;
+			try {
+				workspace = await databases.updateDocument(
+					envConfig.APPWRITE_DATABASE_ID,
+					envConfig.APPWRITE_WORKSPACES_ID,
+					workspaceId,
+					{
+						name,
+						imageId: file ? file.$id : typeof image === "string" ? image : "",
+					}
+				);
+			} catch (error: any) {
+				return c.json(
+					{ error, message: "Failed to databases.updateDocument workspace" },
+					error?.code
+				);
+			}
+
+			return c.json({
+				data: {
+					...workspace,
+					member: {
+						...member,
+						workspaceId: workspace.$id,
+					},
+				},
+				success: true,
+			});
+		}
+	)
+	.get("/:workspaceId", sessionMiddleware, async (c) => {
+		const databases = c.get("databases");
+		const user = c.get("user");
+		const { workspaceId } = c.req.param();
+
+		let member;
+		try {
+			member = await getMember({
+				databases,
+				workspaceId,
+				userId: user.$id,
+			});
+		} catch (error: any) {
+			return c.json({ error: error.message, message: error.message }, 401);
+		}
+
+		const workspace = await databases.getDocument<Workspace>(
+			envConfig.APPWRITE_DATABASE_ID,
+			envConfig.APPWRITE_WORKSPACES_ID,
+			workspaceId
+		);
+		if (!workspace) {
+			return c.json(
+				{ error: "Workspace not found", message: "Workspace not found" },
+				401
+			);
+		}
+		return c.json({
+			data: {
+				...workspace,
+				member: {
+					...member,
+					workspaceId: workspace.$id,
+				},
+			},
+			success: true,
+		});
+	});
 
 export default app;

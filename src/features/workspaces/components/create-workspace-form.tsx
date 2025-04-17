@@ -18,56 +18,111 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AvatarFallback } from "@radix-ui/react-avatar";
 import { ImageIcon } from "lucide-react";
 import Image from "next/image";
-import { ChangeEvent, useRef } from "react";
-import { FieldErrors, useForm } from "react-hook-form";
+import { ChangeEvent, useMemo, useRef } from "react";
+import { ControllerRenderProps, FieldErrors, useForm } from "react-hook-form";
 import { useCreateWorkspace } from "../query/use-create-workspace";
-import { createWorkSpaceSchema, CreateWorkSpaceSchema } from "../schemas";
+import {
+	createWorkspaceSchema,
+	CreateWorkspaceSchema,
+	Workspace,
+} from "../schemas";
 import { useRouter } from "next/navigation";
 import { Models } from "node-appwrite";
-import { cn } from "@/lib/utils";
+import { cn, deepKeysHookFormErrors, scrollToTopError } from "@/lib/utils";
+import { useUpdateWorkspace } from "../query/use-update-workspace";
+import { useGetWorkspace } from "../query/use-get-workspace";
+import { useGetFile } from "@/features/file/query/use-get-file";
+import WorkspaceAvatar from "./workspace-avatar";
 
 interface Props {
 	onCancel?: () => void;
+	workspaceId?: string;
 }
 
-export const CreateWorkspaceForm = ({ onCancel }: Props) => {
+export const CreateWorkspaceForm = ({ onCancel, workspaceId }: Props) => {
+	const isEdit = !!workspaceId;
 	const router = useRouter();
 	const inputRef = useRef<HTMLInputElement>(null);
-	const { mutate, isPending } = useCreateWorkspace();
+	const { mutate: onCreate, isPending: isCreating } = useCreateWorkspace();
+	const { mutate: onUpdate, isPending: isUpdating } = useUpdateWorkspace();
 
-	const form = useForm<CreateWorkSpaceSchema>({
-		resolver: zodResolver(createWorkSpaceSchema),
-		defaultValues: {
-			name: "",
+	const { workspace } = useGetWorkspace({
+		defaultParams: {
+			workspaceId: workspaceId as string,
 		},
 	});
 
-	const onSubmit = async (values: CreateWorkSpaceSchema) => {
+	console.log("workspace: ", workspace);
+
+	const initValues = useMemo(() => {
+		if (isEdit) {
+			return {
+				name: workspace?.name || "",
+				image: workspace?.imageId || "",
+			};
+		}
+		return {
+			name: "",
+			image: "",
+		};
+	}, [isEdit, workspace]);
+
+	const form = useForm<CreateWorkspaceSchema>({
+		resolver: zodResolver(createWorkspaceSchema),
+		defaultValues: initValues,
+		values: initValues,
+		mode: "onBlur",
+		reValidateMode: "onBlur",
+	});
+
+	const onSubmit = async (values: CreateWorkspaceSchema) => {
 		const payload = {
 			...values,
 			image:
 				values.image instanceof File ? await compressImage(values.image) : "",
 		};
-		mutate(
-			{ form: payload },
-			{
-				onSuccess: (data: any) => {
-					const workspace: Models.Document = data?.data;
-					const workspaceId = workspace.$id;
-
-					form.reset();
-					router.push(`/workspaces/${workspaceId}`);
-
-					if (!!onCancel) {
-						onCancel();
-					}
+		if (isEdit) {
+			onUpdate(
+				{
+					form: payload,
+					param: {
+						workspaceId: workspaceId as string,
+					},
 				},
-			}
-		);
+				{
+					onSuccess: (data: any) => {
+						const workspace: Models.Document = data?.data;
+						router.refresh();
+
+						if (!!onCancel) {
+							onCancel();
+						}
+					},
+				}
+			);
+		} else {
+			onCreate(
+				{ form: payload },
+				{
+					onSuccess: (data: any) => {
+						const workspace: Models.Document = data?.data;
+						const workspaceId = workspace.$id;
+
+						form.reset();
+						router.push(`/workspaces/${workspaceId}`);
+
+						if (!!onCancel) {
+							onCancel();
+						}
+					},
+				}
+			);
+		}
 	};
 
-	const onInvalidSubmit = (errors: FieldErrors<CreateWorkSpaceSchema>) => {
+	const onInvalidSubmit = (errors: FieldErrors<CreateWorkspaceSchema>) => {
 		console.log(errors);
+		scrollToTopError(deepKeysHookFormErrors(errors));
 	};
 
 	const handImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -81,13 +136,22 @@ export const CreateWorkspaceForm = ({ onCancel }: Props) => {
 		inputRef.current?.click();
 	};
 
-	const isLoading = isPending;
+	const handleRemoveImage = (
+		field: ControllerRenderProps<CreateWorkspaceSchema, "image">
+	) => {
+		field.onChange(null);
+		if (inputRef.current) {
+			inputRef.current.value = "";
+		}
+	};
+
+	const isLoading = isCreating || isUpdating;
 
 	return (
 		<Card className="w-full h-full border-none shadow-none">
 			<CardHeader className="flex px-7">
 				<CardTitle className="text-xl font-bold">
-					Create a new workspace
+					{isEdit ? workspace.name : "Create a new "} Workspace
 				</CardTitle>
 			</CardHeader>
 			<div className="px-7 ">
@@ -118,16 +182,20 @@ export const CreateWorkspaceForm = ({ onCancel }: Props) => {
 										<div className="flex items-center gap-x-5">
 											{field.value ? (
 												<div className="size-[72px] relative rounded-md overflow-hidden">
-													<Image
-														src={
-															field.value instanceof File
-																? URL.createObjectURL(field.value)
-																: field.value
-														}
-														fill
-														className="object-cover"
-														alt="workspace-avatar"
-													/>
+													{field.value instanceof File ? (
+														<Image
+															src={URL.createObjectURL(field.value)}
+															fill
+															className="object-cover"
+															alt="workspace-avatar"
+														/>
+													) : (
+														<WorkspaceAvatar
+															imageId={field.value}
+															name={workspace?.name}
+															className="w-full h-full"
+														/>
+													)}
 												</div>
 											) : (
 												<Avatar className="size-[72px] flex items-center justify-center">
@@ -139,26 +207,39 @@ export const CreateWorkspaceForm = ({ onCancel }: Props) => {
 											<div className="flex flex-col">
 												<p className="text-sm">Workspace Icon</p>
 												<p className="text-sm text-muted-foreground">
-													JPG, PNG, SVG, JPEG, WEBP, max 2MB
+													JPG, PNG, JPEG, WEBP, max 2MB
 												</p>
 												<input
 													className="hidden"
-													accept=".jpg, .png, .jpeg, .svg, .webp"
+													accept=".jpg, .png, .jpeg, .webp"
 													ref={inputRef}
 													type="file"
 													disabled={isLoading}
 													onChange={handImageChange}
 												/>
-												<Button
-													disabled={isLoading}
-													variant="teritary"
-													size="xs"
-													type="button"
-													className="w-fit mt-2"
-													onClick={handleClickUpload}
-												>
-													Upload Image
-												</Button>
+												{field.value ? (
+													<Button
+														disabled={isLoading}
+														variant="destructive"
+														size="xs"
+														type="button"
+														className="w-fit mt-2"
+														onClick={() => handleRemoveImage(field)}
+													>
+														Remove Image
+													</Button>
+												) : (
+													<Button
+														disabled={isLoading}
+														variant="teritary"
+														size="xs"
+														type="button"
+														className="w-fit mt-2"
+														onClick={handleClickUpload}
+													>
+														Upload Image
+													</Button>
+												)}
 											</div>
 										</div>
 									</div>
@@ -179,7 +260,7 @@ export const CreateWorkspaceForm = ({ onCancel }: Props) => {
 								Cancel
 							</Button>
 							<Button type="submit" size="lg" disabled={isLoading}>
-								Create Workspace
+								{isEdit ? "Update" : "Create"} Workspace
 							</Button>
 						</div>
 					</form>
