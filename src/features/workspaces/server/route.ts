@@ -222,6 +222,71 @@ const app = new Hono()
 			},
 			success: true,
 		});
+	})
+	.delete("/:workspaceId", sessionMiddleware, async (c) => {
+		const databases = c.get("databases");
+		const user = c.get("user");
+		const { workspaceId } = c.req.param();
+
+		const member = await getMember({
+			databases,
+			workspaceId,
+			userId: user.$id,
+		});
+		if (!member) {
+			return c.json(
+				{ error: "Member not found", message: "Member not found" },
+				401
+			);
+		}
+		if (member.role !== MemberRole.ADMIN) {
+			return c.json({ error: "Unauthorized", message: "Unauthorized" }, 401);
+		}
+
+		const members = await databases.listDocuments(
+			envConfig.APPWRITE_DATABASE_ID,
+			envConfig.APPWRITE_MEMBERS_ID,
+			[Query.equal("workspaceId", workspaceId)]
+		);
+
+		if (members.total === 0) {
+			// No members found, nothing to delete move to delete workspace
+		}
+
+		try {
+			for (const member of members.documents) {
+				await databases.deleteDocument(
+					envConfig.APPWRITE_DATABASE_ID,
+					envConfig.APPWRITE_MEMBERS_ID,
+					member.$id
+				);
+			}
+		} catch (error: any) {
+			return c.json(
+				{ error: error.message, message: "Failed to delete member" },
+				401
+			);
+		}
+
+		try {
+			await databases.deleteDocument(
+				envConfig.APPWRITE_DATABASE_ID,
+				envConfig.APPWRITE_WORKSPACES_ID,
+				workspaceId
+			);
+			return c.json({
+				success: true,
+				message: "Workspace deleted successfully",
+				data: {
+					$id: workspaceId,
+				},
+			});
+		} catch (error: any) {
+			return c.json(
+				{ error: error.message, message: "Failed to delete workspace" },
+				401
+			);
+		}
 	});
 
 export default app;

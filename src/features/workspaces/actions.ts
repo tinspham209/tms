@@ -1,8 +1,6 @@
 import envConfig from "@/configs/env";
 import { createSessionClient } from "@/lib/appwrite";
-import { cookies } from "next/headers";
-import { Account, Client, Databases, Query } from "node-appwrite";
-import { AUTH_COOKIE } from "../auth/constants";
+import { Query } from "node-appwrite";
 import { getMember } from "../members/utils";
 import { Workspace } from "./schemas";
 
